@@ -93,51 +93,49 @@ export default class MyPlugin extends Plugin {
 			// クリックされた要素自体、またはその親要素がリストアイテム(LI)に関連するかチェック
 			const li = target.closest('li');
 			if (li) {
-				const text = li.textContent?.trim();
-				// 「アタリ」という文字列が正確に含まれているか、またはリンクとしてクリックされている場合を考慮
-				if (text === 'アタリ' || target.textContent?.trim() === 'アタリ') {
-					
-					let isExercise = false;
-					
-					// 1. 直前の要素を遡って見出しを探す（ライブプレビューやプレビューモードの一般的な構造）
-					let container = li.closest('ul, ol');
-					if (container) {
-						let prev = container.previousElementSibling;
-						while (prev) {
-							if (prev.tagName.match(/^H[1-6]$/)) {
-								if (prev.textContent?.includes('練習問題')) {
-									isExercise = true;
-								}
-								break; // 見出しが見つかったら、それが「練習問題」でなくてもループを抜ける（直近の見出しが対象）
-							}
-							prev = prev.previousElementSibling;
-						}
-					}
-					
-					// 2. もし見つからなかった場合、もっと広範囲に探す（コンテナ内の前の見出し）
-					if (!isExercise) {
-						// 現在の表示領域（MarkdownView）内のみに限定して探すのが理想的
-						const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-						if (activeView) {
-							const contentEl = activeView.contentEl;
-							const allHeadings = Array.from(contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6'));
-							let lastHeadingBeforeLi = null;
-							for (const h of allHeadings) {
-								if (h.compareDocumentPosition(li) & Node.DOCUMENT_POSITION_FOLLOWING) {
-									lastHeadingBeforeLi = h;
-								} else {
-									break;
-								}
-							}
-							if (lastHeadingBeforeLi && lastHeadingBeforeLi.textContent?.includes('練習問題')) {
+				const text = li.textContent?.trim() || target.textContent?.trim() || "";
+				if (!text) return;
+
+				let isExercise = false;
+				
+				// 1. 直前の要素を遡って見出しを探す（ライブプレビューやプレビューモードの一般的な構造）
+				let container = li.closest('ul, ol');
+				if (container) {
+					let prev = container.previousElementSibling;
+					while (prev) {
+						if (prev.tagName.match(/^H[1-6]$/)) {
+							if (prev.textContent?.includes('練習問題')) {
 								isExercise = true;
 							}
+							break; // 見出しが見つかったら、それが「練習問題」でなくてもループを抜ける（直近の見出しが対象）
+						}
+						prev = prev.previousElementSibling;
+					}
+				}
+				
+				// 2. もし見つからなかった場合、もっと広範囲に探す（コンテナ内の前の見出し）
+				if (!isExercise) {
+					// 現在の表示領域（MarkdownView）内のみに限定して探すのが理想的
+					const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+					if (activeView) {
+						const contentEl = activeView.contentEl;
+						const allHeadings = Array.from(contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+						let lastHeadingBeforeLi = null;
+						for (const h of allHeadings) {
+							if (h.compareDocumentPosition(li) & Node.DOCUMENT_POSITION_FOLLOWING) {
+								lastHeadingBeforeLi = h;
+							} else {
+								break;
+							}
+						}
+						if (lastHeadingBeforeLi && lastHeadingBeforeLi.textContent?.includes('練習問題')) {
+							isExercise = true;
 						}
 					}
+				}
 
-					if (isExercise) {
-						new IgoStudyModal(this.app, this).open();
-					}
+				if (isExercise) {
+					new IgoStudyModal(this.app, this, text).open();
 				}
 			}
 		});
@@ -177,10 +175,12 @@ class SampleModal extends Modal {
 
 class IgoStudyModal extends Modal {
 	plugin: MyPlugin;
+	initialTag: string;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: MyPlugin, initialTag: string = "") {
 		super(app);
 		this.plugin = plugin;
+		this.initialTag = initialTag;
 	}
 
 	async onOpen() {
@@ -204,7 +204,7 @@ class IgoStudyModal extends Modal {
 		const tagInput = searchContainer.createEl('input', { 
 			type: 'text', 
 			placeholder: 'タグを入力 (例: tsumego)',
-			value: this.plugin.settings.problemTag
+			value: this.initialTag || this.plugin.settings.problemTag
 		});
 		const searchBtn = searchContainer.createEl('button', { text: '検索' });
 
@@ -217,11 +217,21 @@ class IgoStudyModal extends Modal {
 			const lowerFilter = filterTag.toLowerCase();
 
 			const pages = allPages.filter((p: any) => {
-				// タグによるあいまい検索
-				const tags = p.file.tags || [];
-				const hasMatchingTag = tags.some((tag: string) => tag.toLowerCase().includes(lowerFilter));
+				// tags プロパティによるあいまい検索
+				let tags = p.tags || [];
+				if (!Array.isArray(tags)) {
+					tags = [tags];
+				}
+				const hasMatchingTag = tags.some((tag: any) => 
+					typeof tag === 'string' && tag.toLowerCase().includes(lowerFilter)
+				);
 
 				// igo_problem プロパティがある、またはタグがマッチする場合
+				// filterTagが空の場合は全件表示（またはigo_problemのみ）を考慮
+				if (!filterTag) {
+					return p.igo_problem;
+				}
+
 				return p.igo_problem || hasMatchingTag;
 			});
 
@@ -251,7 +261,7 @@ class IgoStudyModal extends Modal {
 		});
 
 		// 初回描画
-		renderList(this.plugin.settings.problemTag);
+		renderList(tagInput.value.trim());
 	}
 
 	async showProblem(page: any) {
