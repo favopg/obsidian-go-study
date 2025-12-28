@@ -90,6 +90,9 @@ export default class MyPlugin extends Plugin {
 		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
 			const target = evt.target as HTMLElement;
 
+			// モーダル内のクリックは無視する
+			if (target.closest('.modal')) return;
+
 			// クリックされた要素自体、またはその親要素がリストアイテム(LI)に関連するかチェック
 			const li = target.closest('li');
 			if (li) {
@@ -208,7 +211,17 @@ class IgoStudyModal extends Modal {
 		});
 		const searchBtn = searchContainer.createEl('button', { text: '検索' });
 
+		const progressEl = contentEl.createDiv({ attr: { style: 'margin-bottom: 15px; font-weight: bold;' } });
+
 		const listContainer = contentEl.createDiv();
+
+		const updateProgress = () => {
+			const checkboxes = listContainer.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+			const total = checkboxes.length;
+			const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+			const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
+			progressEl.setText(`練習問題の進捗度：${percentage}%`);
+		};
 
 		const renderList = (filterTag: string) => {
 			listContainer.empty();
@@ -237,17 +250,32 @@ class IgoStudyModal extends Modal {
 
 			if (pages.length === 0) {
 				listContainer.createEl('p', { text: `問題が見つかりませんでした。キーワード "${filterTag}" を含むタグ、または "igo_problem" プロパティを確認してください。` });
+				updateProgress();
 				return;
 			}
 
-			const listEl = listContainer.createEl('ul');
+			const listEl = listContainer.createEl('ul', { attr: { style: 'list-style: none; padding-left: 0;' } });
 			pages.forEach((page: any) => {
-				const itemEl = listEl.createEl('li');
+				const itemEl = listEl.createEl('li', { attr: { style: 'display: flex; align-items: center; gap: 8px;' } });
+				
+				const checkbox = itemEl.createEl('input', { type: 'checkbox' });
+				// Dataviewのプロパティ(completedなど)があれば初期値にする
+				if (page.completed === true) {
+					checkbox.checked = true;
+				}
+
+				checkbox.addEventListener('change', () => {
+					updateProgress();
+					// 必要に応じて永続化処理を追加可能
+				});
+
 				const linkEl = itemEl.createEl('a', { text: page.file.name, cls: 'internal-link' });
 				linkEl.onClickEvent(() => {
 					this.showProblem(page);
 				});
 			});
+
+			updateProgress();
 		};
 
 		searchBtn.onClickEvent(() => {
