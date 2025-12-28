@@ -193,7 +193,8 @@ class IgoStudyModal extends Modal {
 	async renderProblemList() {
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.createEl('h2', { text: 'Igo Study - 問題集' });
+		const title = this.initialTag ? `${this.initialTag}問題集` : 'Igo Study - 問題集';
+		contentEl.createEl('h2', { text: title });
 
 		const dv = (this.app as any).plugins.plugins.dataview?.api;
 		if (!dv) {
