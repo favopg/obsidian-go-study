@@ -34,8 +34,15 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 			id: 'igo-study-command',
 			name: 'Igo Study',
-			callback: () => {
-				new IgoStudyModal(this.app, this).open();
+			callback: async () => {
+				const file = this.app.vault.getAbstractFileByPath('メニュー.md');
+				if (file) {
+					const leaf = this.app.workspace.getLeaf(false);
+					await leaf.openFile(file as any);
+				} else {
+					new Notice('メニュー.md が見つかりません。');
+					new IgoStudyModal(this.app, this).open();
+				}
 			}
 		});
 
@@ -81,7 +88,58 @@ export default class MyPlugin extends Plugin {
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
+			const target = evt.target as HTMLElement;
+
+			// クリックされた要素自体、またはその親要素がリストアイテム(LI)に関連するかチェック
+			const li = target.closest('li');
+			if (li) {
+				const text = li.textContent?.trim();
+				// 「アタリ」という文字列が正確に含まれているか、またはリンクとしてクリックされている場合を考慮
+				if (text === 'アタリ' || target.textContent?.trim() === 'アタリ') {
+					
+					let isExercise = false;
+					
+					// 1. 直前の要素を遡って見出しを探す（ライブプレビューやプレビューモードの一般的な構造）
+					let container = li.closest('ul, ol');
+					if (container) {
+						let prev = container.previousElementSibling;
+						while (prev) {
+							if (prev.tagName.match(/^H[1-6]$/)) {
+								if (prev.textContent?.includes('練習問題')) {
+									isExercise = true;
+								}
+								break; // 見出しが見つかったら、それが「練習問題」でなくてもループを抜ける（直近の見出しが対象）
+							}
+							prev = prev.previousElementSibling;
+						}
+					}
+					
+					// 2. もし見つからなかった場合、もっと広範囲に探す（コンテナ内の前の見出し）
+					if (!isExercise) {
+						// 現在の表示領域（MarkdownView）内のみに限定して探すのが理想的
+						const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+						if (activeView) {
+							const contentEl = activeView.contentEl;
+							const allHeadings = Array.from(contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+							let lastHeadingBeforeLi = null;
+							for (const h of allHeadings) {
+								if (h.compareDocumentPosition(li) & Node.DOCUMENT_POSITION_FOLLOWING) {
+									lastHeadingBeforeLi = h;
+								} else {
+									break;
+								}
+							}
+							if (lastHeadingBeforeLi && lastHeadingBeforeLi.textContent?.includes('練習問題')) {
+								isExercise = true;
+							}
+						}
+					}
+
+					if (isExercise) {
+						new IgoStudyModal(this.app, this).open();
+					}
+				}
+			}
 		});
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
@@ -126,6 +184,10 @@ class IgoStudyModal extends Modal {
 	}
 
 	async onOpen() {
+		this.renderProblemList();
+	}
+
+	async renderProblemList() {
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.createEl('h2', { text: 'Igo Study - 問題集' });
@@ -228,7 +290,7 @@ class IgoStudyModal extends Modal {
 				const checkBtn = controlsEl.createEl('button', { text: '答え合わせ' });
 				const backBtn = controlsEl.createEl('button', { text: '戻る' });
 				backBtn.onClickEvent(() => {
-					this.onOpen();
+					this.renderProblemList();
 				});
 
 				const resultMsgEl = problemEl.createDiv({ cls: 'igo-result-message', attr: { style: 'font-weight: bold; margin-bottom: 10px; min-height: 1.5em;' } });
