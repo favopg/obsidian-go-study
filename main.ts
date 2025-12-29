@@ -326,9 +326,18 @@ class IgoStudyModal extends Modal {
 
 				const problemEl = contentEl.createDiv();
 
-				// コントロール類（入力欄、ボタン）を先に作成
+				// コントロール類（プルダウン、ボタン）を先に作成
 				const controlsEl = problemEl.createDiv({ attr: { style: 'margin-bottom: 15px; display: flex; gap: 10px; align-items: center;' } });
-				const answerInput = controlsEl.createEl('input', { type: 'text', placeholder: `正解の手順を入力 (デフォルト: ${this.plugin.settings.defaultAnswer})` });
+				
+				const answerSelect = controlsEl.createEl('select');
+				answerSelect.createEl('option', { text: '回答を選択してください', value: '' });
+				if (page.question) {
+					const options = String(page.question).split(',').map(s => s.trim());
+					options.forEach(opt => {
+						answerSelect.createEl('option', { text: opt, value: opt });
+					});
+				}
+
 				const checkBtn = controlsEl.createEl('button', { text: '答え合わせ' });
 				const backBtn = controlsEl.createEl('button', { text: '戻る' });
 				backBtn.onClickEvent(() => {
@@ -384,7 +393,11 @@ class IgoStudyModal extends Modal {
 				}, 500);
 
 				checkBtn.onClickEvent(() => {
-					const answer = answerInput.value.toLowerCase().trim();
+					const answer = answerSelect.value.toLowerCase().trim();
+					if (!answer) {
+						new Notice('回答を選択してください');
+						return;
+					}
 					// Frontmatterのanswer、またはSGF内の着手と比較
 					const expectedAnswer = (page.answer || this.plugin.settings.defaultAnswer).toLowerCase().trim();
 					if (answer === expectedAnswer || sgfAnswers.includes(answer)) {
