@@ -93,6 +93,9 @@ export default class MyPlugin extends Plugin {
 			// モーダル内のクリックは無視する
 			if (target.closest('.modal')) return;
 
+			// リンク(aタグ)のクリックは無視する
+			if (target.closest('a')) return;
+
 			// クリックされた要素自体、またはその親要素がリストアイテム(LI)に関連するかチェック
 			const li = target.closest('li');
 			if (li) {
