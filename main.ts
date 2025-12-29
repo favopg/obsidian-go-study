@@ -324,6 +324,10 @@ class IgoStudyModal extends Modal {
 				const commentMatch = sgfData.match(/C\[([\s\S]*?)\]/);
 				const initialComment = commentMatch ? commentMatch[1] : "";
 
+				// SGFから結果(RE[])を抽出
+				const reMatch = sgfData.match(/RE\[([\s\S]*?)\]/);
+				const resultValue = reMatch ? reMatch[1] : "";
+
 				const problemEl = contentEl.createDiv();
 
 				// コントロール類（プルダウン、ボタン）を先に作成
@@ -344,7 +348,7 @@ class IgoStudyModal extends Modal {
 					this.renderProblemList();
 				});
 
-				const resultMsgEl = problemEl.createDiv({ cls: 'igo-result-message', attr: { style: 'font-weight: bold; margin-bottom: 10px; min-height: 1.5em;' } });
+				const resultMsgEl = problemEl.createDiv({ cls: 'igo-result-message', attr: { style: 'font-weight: bold; margin-bottom: 10px; min-height: 1.5em; white-space: pre-wrap;' } });
 				resultMsgEl.setText(initialComment);
 				const container = problemEl.createDiv({ cls: 'goboard-container' });
 				
@@ -385,7 +389,7 @@ class IgoStudyModal extends Modal {
 								resultMsgEl.setText('正解です！ (' + coords + ')');
 								resultMsgEl.style.color = 'green';
 							} else {
-								resultMsgEl.setText('不正解です。 (' + coords + ')');
+								resultMsgEl.setText('不正解です。 (' + coords + ')' + (resultValue ? '\n結果: ' + resultValue : ''));
 								resultMsgEl.style.color = 'red';
 							}
 						});
@@ -404,7 +408,7 @@ class IgoStudyModal extends Modal {
 						resultMsgEl.setText('正解です！');
 						resultMsgEl.style.color = 'green';
 					} else {
-						resultMsgEl.setText('不正解です。');
+						resultMsgEl.setText('不正解です。' + (resultValue ? '\n結果: ' + resultValue : ''));
 						resultMsgEl.style.color = 'red';
 					}
 				});
