@@ -224,7 +224,7 @@ class IgoStudyModal extends Modal {
 			const total = checkboxes.length;
 			const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
 			const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
-			progressEl.setText(`練習問題の進捗度：${percentage}%`);
+			progressEl.setText(`練習問題の達成度：${percentage}%`);
 		};
 
 		const renderList = (filterTag: string) => {
