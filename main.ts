@@ -324,7 +324,7 @@ class IgoStudyModal extends Modal {
 				const commentMatch = sgfData.match(/C\[([\s\S]*?)\]/);
 				const initialComment = commentMatch ? commentMatch[1] : "";
 
-				// SGFから結果(RE[])を抽出
+				// SGFからポイント(RE[])を抽出
 				const reMatch = sgfData.match(/RE\[([\s\S]*?)\]/);
 				const resultValue = reMatch ? reMatch[1] : "";
 
@@ -392,7 +392,7 @@ class IgoStudyModal extends Modal {
 								resultMsgEl.setText('正解です！ (' + coords + ')');
 								resultMsgEl.style.color = 'green';
 							} else {
-								resultMsgEl.setText('不正解です。 (' + coords + ')' + (resultValue ? '\n結果: ' + resultValue : ''));
+								resultMsgEl.setText('不正解です。 (' + coords + ')' + (resultValue ? '\nポイント: ' + resultValue : ''));
 								resultMsgEl.style.color = 'red';
 							}
 						});
@@ -414,7 +414,7 @@ class IgoStudyModal extends Modal {
 						resultMsgEl.setText('正解です！');
 						resultMsgEl.style.color = 'green';
 					} else {
-						resultMsgEl.setText('不正解です。' + (resultValue ? '\n結果: ' + resultValue : ''));
+						resultMsgEl.setText('不正解です。' + (resultValue ? '\nポイント: ' + resultValue : ''));
 						resultMsgEl.style.color = 'red';
 					}
 				});
