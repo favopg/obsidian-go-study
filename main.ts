@@ -260,9 +260,9 @@ class IgoStudyModal extends Modal {
 
 			const listEl = listContainer.createEl('ul', { attr: { style: 'list-style: none; padding-left: 0;' } });
 			pages.forEach((page: any) => {
-				const itemEl = listEl.createEl('li', { attr: { style: 'display: flex; align-items: center; gap: 8px;' } });
+				const itemEl = listEl.createEl('li', { attr: { style: 'display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--background-modifier-border-focus);' } });
 				
-				const checkbox = itemEl.createEl('input', { type: 'checkbox' });
+				const checkbox = itemEl.createEl('input', { type: 'checkbox', attr: { style: 'width: 20px; height: 20px; cursor: pointer;' } });
 				// Dataviewのプロパティ(completedなど)があれば初期値にする
 				if (page.completed === true) {
 					checkbox.checked = true;
@@ -273,7 +273,7 @@ class IgoStudyModal extends Modal {
 					// 必要に応じて永続化処理を追加可能
 				});
 
-				const linkEl = itemEl.createEl('a', { text: page.file.name, cls: 'internal-link' });
+				const linkEl = itemEl.createEl('a', { text: page.file.name, cls: 'internal-link', attr: { style: 'font-size: 1.1em; flex-grow: 1; padding: 5px 0;' } });
 				linkEl.onClickEvent(() => {
 					this.showProblem(page);
 				});
