@@ -379,10 +379,13 @@ class IgoStudyModal extends Modal {
 							const y = evt.clientY - rect.top;
 							
 							const coords = this.convertClickToSgf(x, y, canvas.width, canvas.height, boardSize);
-							const expectedAnswer = (page.answer || this.plugin.settings.defaultAnswer).toLowerCase().trim();
 							
-							// Frontmatterの正解、またはSGF内の着手と一致するか判定
-							const isCorrect = coords === expectedAnswer || sgfAnswers.includes(coords);
+							// Frontmatterの正解(カンマ区切り対応)、またはSGF内の着手と一致するか判定
+							const expectedAnswers = String(page.answer || this.plugin.settings.defaultAnswer)
+								.split(',')
+								.map(s => s.toLowerCase().trim());
+							
+							const isCorrect = expectedAnswers.includes(coords) || sgfAnswers.includes(coords);
 							this.showFeedback(isCorrect, x, y, container);
 							
 							if (isCorrect) {
@@ -402,9 +405,12 @@ class IgoStudyModal extends Modal {
 						new Notice('回答を選択してください');
 						return;
 					}
-					// Frontmatterのanswer、またはSGF内の着手と比較
-					const expectedAnswer = (page.answer || this.plugin.settings.defaultAnswer).toLowerCase().trim();
-					if (answer === expectedAnswer || sgfAnswers.includes(answer)) {
+					// Frontmatterのanswer(カンマ区切り対応)、またはSGF内の着手と比較
+					const expectedAnswers = String(page.answer || this.plugin.settings.defaultAnswer)
+						.split(',')
+						.map(s => s.toLowerCase().trim());
+
+					if (expectedAnswers.includes(answer) || sgfAnswers.includes(answer)) {
 						resultMsgEl.setText('正解です！');
 						resultMsgEl.style.color = 'green';
 					} else {
