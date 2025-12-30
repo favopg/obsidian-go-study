@@ -352,52 +352,77 @@ class IgoStudyModal extends Modal {
 				resultMsgEl.setText(initialComment);
 				const container = problemEl.createDiv({ cls: 'goboard-container' });
 				
-				// 総手数を取得
-				const totalMoves = sgfAnswers.length;
-
-				// 対応するSGFファイルを検索
-				const sgfFile = this.app.vault.getFiles().find(f => f.name === `${page.file.name}.sgf` || f.path === page.sgf_path);
-
-				if (sgfFile) {
-					// SGFファイルが見つかった場合は埋め込みリンク形式を使用
-					await MarkdownRenderer.renderMarkdown(`![[${sgfFile.path}|move=${totalMoves}]]`, container, page.file.path, this.plugin);
-				} else {
-					// SGFファイルが見つからない場合はフォールバックとしてコードブロックを使用
-					// Componentを作成してライフサイクルを管理する
-					// Go Board Viewerのコードブロックパラメータ形式に従い、sgfブロックを使用
-					// Go Board Viewerはコードブロック内の <!-- move=N --> を解釈して初期手数をセットする
-					await MarkdownRenderer.renderMarkdown(`\`\`\`sgf\n<!-- move=${totalMoves} -->\n${sgfData}\n\`\`\``, container, page.file.path, this.plugin);
-				}
-
-				// 碁盤のクリックイベントを設定（少し待ってからcanvasを探す）
-				setTimeout(() => {
-					const canvas = container.querySelector('canvas');
-					if (canvas) {
-						canvas.addEventListener('click', (evt: MouseEvent) => {
-							const rect = canvas.getBoundingClientRect();
-							const x = evt.clientX - rect.left;
-							const y = evt.clientY - rect.top;
-							
-							const coords = this.convertClickToSgf(x, y, canvas.width, canvas.height, boardSize);
-							
-							// Frontmatterの正解(カンマ区切り対応)、またはSGF内の着手と一致するか判定
-							const expectedAnswers = String(page.answer || this.plugin.settings.defaultAnswer)
-								.split(',')
-								.map(s => s.toLowerCase().trim());
-							
-							const isCorrect = expectedAnswers.includes(coords) || sgfAnswers.includes(coords);
-							this.showFeedback(isCorrect, x, y, container);
-							
-							if (isCorrect) {
-								resultMsgEl.setText('正解です！ (' + coords + ')');
-								resultMsgEl.style.color = 'green';
-							} else {
-								resultMsgEl.setText('不正解です。 (' + coords + ')' + (resultValue ? '\nポイント: ' + resultValue : ''));
-								resultMsgEl.style.color = 'red';
-							}
-						});
+				// 再描画用の関数を定義
+				const refreshBoard = async (newSgf: string, moveCount: number) => {
+					container.empty();
+					const sgfFile = this.app.vault.getFiles().find(f => f.name === `${page.file.name}.sgf` || f.path === page.sgf_path);
+					if (sgfFile && newSgf === sgfData) {
+						await MarkdownRenderer.renderMarkdown(`![[${sgfFile.path}|move=${moveCount}]]`, container, page.file.path, this.plugin);
+					} else {
+						await MarkdownRenderer.renderMarkdown(`\`\`\`sgf\n<!-- move=${moveCount} -->\n${newSgf}\n\`\`\``, container, page.file.path, this.plugin);
 					}
-				}, 500);
+					
+					// 再描画後にクリックイベントを再設定
+					setTimeout(() => {
+						const canvas = container.querySelector('canvas');
+						if (canvas) {
+							canvas.style.cursor = 'pointer';
+							canvas.addEventListener('click', handleBoardClick);
+						}
+					}, 500);
+				};
+
+				const handleBoardClick = (evt: MouseEvent) => {
+					const canvas = evt.target as HTMLCanvasElement;
+					const rect = canvas.getBoundingClientRect();
+					const x = evt.clientX - rect.left;
+					const y = evt.clientY - rect.top;
+					
+					const coords = this.convertClickToSgf(x, y, canvas.width, canvas.height, boardSize);
+					processAnswer(coords, x, y);
+				};
+
+				const processAnswer = async (coords: string, x?: number, y?: number) => {
+					// Frontmatterの正解(カンマ区切り対応)、またはSGF内の着手と一致するか判定
+					const expectedAnswers = String(page.answer || this.plugin.settings.defaultAnswer)
+						.split(',')
+						.map(s => s.toLowerCase().trim());
+					
+					// 人間座標(C7等)をSGF形式(cc等)に変換して比較
+					const normalizedExpected = expectedAnswers.map(ans => {
+						if (ans.match(/^[a-z][0-9]{1,2}$/i)) {
+							return this.humanToSgf(ans, boardSize);
+						}
+						return ans;
+					});
+
+					const isCorrect = normalizedExpected.includes(coords) || sgfAnswers.includes(coords);
+					
+					if (x !== undefined && y !== undefined) {
+						this.showFeedback(isCorrect, x, y, container);
+					}
+
+					// 石を置いた状態のSGFを作成
+					// 手番を判定（SGFの最後の手がBなら次はW、そうでなければB。問題は通常白番か黒番か固定だが、ここでは最後の手の逆とする）
+					const lastMoveMatch = sgfData.match(/;([BW])\[([a-z]{2})\](?=[^;]*\s*\)$)/);
+					const nextColor = (lastMoveMatch && lastMoveMatch[1] === 'B') ? 'W' : 'B';
+					
+					// SGFの最後の閉じ括弧の前に新しい手を追加する（空白や改行を考慮）
+					const updatedSgf = sgfData.replace(/(\)\s*)$/, `;${nextColor}[${coords}]$1`);
+					
+					await refreshBoard(updatedSgf, sgfAnswers.length + 1);
+
+					if (isCorrect) {
+						resultMsgEl.setText('正解です！ (' + this.sgfToHuman(coords, boardSize) + ')');
+						resultMsgEl.style.color = 'green';
+					} else {
+						resultMsgEl.setText('不正解です。 (' + this.sgfToHuman(coords, boardSize) + ')' + (resultValue ? '\nポイント: ' + resultValue : ''));
+						resultMsgEl.style.color = 'red';
+					}
+				};
+
+				// 初回描画
+				await refreshBoard(sgfData, sgfAnswers.length);
 
 				checkBtn.onClickEvent(() => {
 					const answer = answerSelect.value.toLowerCase().trim();
@@ -405,23 +430,45 @@ class IgoStudyModal extends Modal {
 						new Notice('回答を選択してください');
 						return;
 					}
-					// Frontmatterのanswer(カンマ区切り対応)、またはSGF内の着手と比較
-					const expectedAnswers = String(page.answer || this.plugin.settings.defaultAnswer)
-						.split(',')
-						.map(s => s.toLowerCase().trim());
-
-					if (expectedAnswers.includes(answer) || sgfAnswers.includes(answer)) {
-						resultMsgEl.setText('正解です！');
-						resultMsgEl.style.color = 'green';
-					} else {
-						resultMsgEl.setText('不正解です。' + (resultValue ? '\nポイント: ' + resultValue : ''));
-						resultMsgEl.style.color = 'red';
+					
+					let coords = answer;
+					if (answer.match(/^[a-z][0-9]{1,2}$/i)) {
+						coords = this.humanToSgf(answer, boardSize);
 					}
+					processAnswer(coords);
 				});
 			} else {
 				contentEl.createEl('p', { text: 'SGFデータが見つかりませんでした。' });
 			}
 		}
+	}
+
+	humanToSgf(human: string, boardSize: number): string {
+		const colChar = human.charAt(0).toLowerCase();
+		let col = colChar.charCodeAt(0) - 97; // 'a' = 0
+		if (colChar > 'i') col--; // 囲碁の座標では 'i' を飛ばすのが一般的だが、SGFでは飛ばさない。
+		// ただし、入力が 'C7' のような形式の場合、'i' を飛ばしている可能性が高い。
+		// Go Board Viewerの座標系を確認する必要があるが、一旦単純な変換を試みる。
+		
+		// 再考：Go Board Viewerが'C7'と表示している場合、'I'を除いた座標系(A-T, no I)
+		const alpha = "abcdefghjklmnopqrstuvwxyz";
+		const xIndex = alpha.indexOf(colChar);
+		
+		const row = boardSize - parseInt(human.substring(1));
+		
+		const charX = String.fromCharCode(97 + xIndex);
+		const charY = String.fromCharCode(97 + row);
+		return charX + charY;
+	}
+
+	sgfToHuman(sgf: string, boardSize: number): string {
+		const x = sgf.charCodeAt(0) - 97;
+		const y = sgf.charCodeAt(1) - 97;
+		
+		const alpha = "ABCDEFGHJKLMNOPQRSTUVWXYZ";
+		const col = alpha.charAt(x);
+		const row = boardSize - y;
+		return col + row;
 	}
 
 	onClose() {
