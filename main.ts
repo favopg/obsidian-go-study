@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, MarkdownRenderer } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, MarkdownRenderer, TFile } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
@@ -268,9 +268,17 @@ class IgoStudyModal extends Modal {
 					checkbox.checked = true;
 				}
 
-				checkbox.addEventListener('change', () => {
+				checkbox.addEventListener('change', async () => {
 					updateProgress();
-					// 必要に応じて永続化処理を追加可能
+					
+					// 永続化処理の追加
+					const file = this.app.vault.getAbstractFileByPath(page.file.path);
+					if (file instanceof TFile) {
+						await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+							// チェックボックスの状態を 'completed' プロパティに保存
+							frontmatter['completed'] = checkbox.checked;
+						});
+					}
 				});
 
 				const linkEl = itemEl.createEl('a', { text: page.file.name, cls: 'internal-link', attr: { style: 'font-size: 1.1em; flex-grow: 1; padding: 5px 0;' } });
