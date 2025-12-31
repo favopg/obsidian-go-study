@@ -259,10 +259,16 @@ class IgoStudyModal extends Modal {
 			}
 
 			const listEl = listContainer.createEl('ul', { attr: { style: 'list-style: none; padding-left: 0;' } });
-			pages.forEach((page: any) => {
-				const itemEl = listEl.createEl('li', { attr: { style: 'display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--background-modifier-border-focus);' } });
+			pages.forEach((page: any, index: number) => {
+				const itemEl = listEl.createEl('li', { attr: { style: 'display: flex; align-items: flex-end; gap: 15px; padding: 10px 0; border-bottom: 1px solid var(--background-modifier-border-focus);' } });
 				
-				const checkbox = itemEl.createEl('input', { type: 'checkbox', attr: { style: 'width: 20px; height: 20px; cursor: pointer;' } });
+				// チェックボックス用の縦並びコンテナ
+				const cbContainer = itemEl.createDiv({ attr: { style: 'display: flex; flex-direction: column; align-items: center; width: 50px;' } });
+				if (index === 0) {
+					cbContainer.createSpan({ text: 'OK/NG', attr: { style: 'font-size: 0.8em; color: var(--text-muted); margin-bottom: 4px;' } });
+				}
+				const checkbox = cbContainer.createEl('input', { type: 'checkbox', attr: { style: 'width: 20px; height: 20px; cursor: pointer;' } });
+
 				// Dataviewのプロパティ(completedなど)があれば初期値にする
 				if (page.completed === true) {
 					checkbox.checked = true;
@@ -281,7 +287,12 @@ class IgoStudyModal extends Modal {
 					}
 				});
 
-				const linkEl = itemEl.createEl('a', { text: page.file.name, cls: 'internal-link', attr: { style: 'font-size: 1.1em; flex-grow: 1; padding: 5px 0;' } });
+				// リンク用の縦並びコンテナ
+				const linkContainer = itemEl.createDiv({ attr: { style: 'display: flex; flex-direction: column; flex-grow: 1;' } });
+				if (index === 0) {
+					linkContainer.createSpan({ text: '問題一覧', attr: { style: 'font-size: 0.8em; color: var(--text-muted); margin-bottom: 4px;' } });
+				}
+				const linkEl = linkContainer.createEl('a', { text: page.file.name, cls: 'internal-link', attr: { style: 'font-size: 1.1em; padding: 2px 0;' } });
 				linkEl.onClickEvent(() => {
 					this.showProblem(page);
 				});
