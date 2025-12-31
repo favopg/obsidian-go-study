@@ -19,9 +19,9 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (_evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('dice', 'Go Study', (_evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+			this.executeGoStudy();
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
@@ -35,14 +35,7 @@ export default class MyPlugin extends Plugin {
 			id: 'igo-study-command',
 			name: 'Igo Study',
 			callback: async () => {
-				const file = this.app.vault.getAbstractFileByPath('メニュー.md');
-				if (file) {
-					const leaf = this.app.workspace.getLeaf(false);
-					await leaf.openFile(file as any);
-				} else {
-					new Notice('メニュー.md が見つかりません。');
-					new IgoStudyModal(this.app, this).open();
-				}
+				await this.executeGoStudy();
 			}
 		});
 
@@ -202,6 +195,17 @@ export default class MyPlugin extends Plugin {
 
 	onunload() {
 
+	}
+
+	async executeGoStudy() {
+		const file = this.app.vault.getAbstractFileByPath('メニュー.md');
+		if (file) {
+			const leaf = this.app.workspace.getLeaf(false);
+			await leaf.openFile(file as any);
+		} else {
+			new Notice('メニュー.md が見つかりません。');
+			new IgoStudyModal(this.app, this).open();
+		}
 	}
 
 	async loadSettings() {
