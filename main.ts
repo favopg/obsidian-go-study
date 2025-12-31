@@ -444,7 +444,7 @@ class IgoStudyModal extends Modal {
 				}
 
 				const checkBtn = controlsEl.createEl('button', { text: '答え合わせ' });
-				const backBtn = controlsEl.createEl('button', { text: '戻る' });
+				const backBtn = controlsEl.createEl('button', { text: '一覧に戻る' });
 				backBtn.onClickEvent(() => {
 					this.renderProblemList();
 				});
