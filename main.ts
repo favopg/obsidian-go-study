@@ -234,7 +234,7 @@ class IgoStudyModal extends Modal {
 			const isOkSearch = filterValue === 'OK';
 			const isAllSearch = filterValue === 'ALL';
 
-			const pages = allPages.filter((p: any) => {
+			let pages = allPages.filter((p: any) => {
 				// igo_problem または tags プロパティをチェック
 				let tags = p.tags || [];
 				if (!Array.isArray(tags)) {
@@ -257,6 +257,13 @@ class IgoStudyModal extends Modal {
 				if (isAllSearch) return true;
 				const isCompleted = p.completed === true;
 				return isOkSearch ? isCompleted : !isCompleted;
+			});
+
+			// noプロパティによる昇順ソート
+			pages.sort((a: any, b: any) => {
+				const noA = a.no !== undefined ? a.no : Infinity;
+				const noB = b.no !== undefined ? b.no : Infinity;
+				return noA - noB;
 			});
 
 			if (pages.length === 0) {
@@ -301,7 +308,8 @@ class IgoStudyModal extends Modal {
 				if (index === 0) {
 					linkContainer.createSpan({ text: '問題一覧', attr: { style: 'font-size: 0.8em; color: var(--text-muted); margin-bottom: 4px;' } });
 				}
-				const linkEl = linkContainer.createEl('a', { text: page.file.name, cls: 'internal-link', attr: { style: 'font-size: 1.1em; padding: 2px 0;' } });
+				const noPrefix = page.no !== undefined ? `${page.no}. ` : '';
+				const linkEl = linkContainer.createEl('a', { text: `${noPrefix}${page.file.name}`, cls: 'internal-link', attr: { style: 'font-size: 1.1em; padding: 2px 0;' } });
 				linkEl.onClickEvent(() => {
 					this.showProblem(page);
 				});
