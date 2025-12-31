@@ -330,6 +330,9 @@ class IgoStudyModal extends Modal {
 
 				const problemEl = contentEl.createDiv();
 
+				const coordExplanationEl = problemEl.createDiv({ attr: { style: 'font-size: 0.85em; color: var(--text-muted); margin-bottom: 5px;' } });
+				coordExplanationEl.createEl('div', { text: '座標はローマ字、数字の順番に読みます (例：A1)' });
+
 				// コントロール類（プルダウン、ボタン）を先に作成
 				const controlsEl = problemEl.createDiv({ attr: { style: 'margin-bottom: 15px; display: flex; gap: 10px; align-items: center;' } });
 				
