@@ -82,6 +82,56 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
+		// マウスホバー時のポインター表示制御
+		this.registerDomEvent(document, 'mouseover', (evt: MouseEvent) => {
+			const target = evt.target as HTMLElement;
+			const li = target.closest('li');
+			
+			if (li) {
+				// すでに判定済みの場合はスキップ（パフォーマンスのため）
+				if (li.style.cursor === 'pointer') return;
+
+				// 練習問題セクション配下かどうかを判定するロジック（クリック時と同様）
+				let isExercise = false;
+				const container = li.closest('ul, ol');
+				if (container) {
+					let prev = container.previousElementSibling;
+					while (prev) {
+						if (prev.tagName.match(/^H[1-6]$/)) {
+							if (prev.textContent?.includes('練習問題')) {
+								isExercise = true;
+							}
+							break;
+						}
+						prev = prev.previousElementSibling;
+					}
+				}
+
+				if (!isExercise) {
+					const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+					if (activeView) {
+						const contentEl = activeView.contentEl;
+						const allHeadings = Array.from(contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+						let lastHeadingBeforeLi = null;
+						for (const h of allHeadings) {
+							if (h.compareDocumentPosition(li) & Node.DOCUMENT_POSITION_FOLLOWING) {
+								lastHeadingBeforeLi = h;
+							} else {
+								break;
+							}
+						}
+						if (lastHeadingBeforeLi && lastHeadingBeforeLi.textContent?.includes('練習問題')) {
+							isExercise = true;
+						}
+					}
+				}
+
+				if (isExercise) {
+					li.style.cursor = 'pointer';
+				}
+			}
+		});
+
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 
