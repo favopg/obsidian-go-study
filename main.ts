@@ -449,6 +449,30 @@ class IgoStudyModal extends Modal {
 					this.renderProblemList();
 				});
 
+				// 次の問題へボタンを追加
+				const dv = (this.app as any).plugins.plugins.dataview?.api;
+				if (dv) {
+					const allPages = Array.from(dv.pages(''));
+					let pages = allPages.filter((p: any) => {
+						let tags = p.tags || [];
+						if (!Array.isArray(tags)) tags = [tags];
+						if (this.initialTag) {
+							return tags.some((tag: any) => typeof tag === 'string' && tag.includes(this.initialTag));
+						} else {
+							return p.igo_problem || tags.includes(this.plugin.settings.problemTag);
+						}
+					});
+					pages.sort((a: any, b: any) => (a.no || Infinity) - (b.no || Infinity));
+
+					const currentIndex = pages.findIndex((p: any) => p.file.path === page.file.path);
+					if (currentIndex !== -1 && currentIndex < pages.length - 1) {
+						const nextBtn = controlsEl.createEl('button', { text: '次の問題へ' });
+						nextBtn.onClickEvent(() => {
+							this.showProblem(pages[currentIndex + 1]);
+						});
+					}
+				}
+
 				const resultMsgEl = problemEl.createDiv({ cls: 'igo-result-message', attr: { style: 'font-weight: bold; margin-bottom: 10px; min-height: 1.5em; white-space: pre-wrap;' } });
 				resultMsgEl.setText(initialComment);
 				const container = problemEl.createDiv({ cls: 'goboard-container' });
