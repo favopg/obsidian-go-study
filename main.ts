@@ -207,12 +207,12 @@ class IgoStudyModal extends Modal {
 
 		// 検索用UI
 		const searchContainer = contentEl.createDiv({ attr: { style: 'margin-bottom: 20px; display: flex; gap: 10px; align-items: center;' } });
-		searchContainer.createSpan({ text: 'タグで絞り込み:' });
-		const tagInput = searchContainer.createEl('input', { 
-			type: 'text', 
-			placeholder: 'タグを入力 (例: tsumego)',
-			value: this.initialTag || this.plugin.settings.problemTag
-		});
+		searchContainer.createSpan({ text: 'チェックOK/NGで絞込' });
+		const tagInput = searchContainer.createEl('select');
+		tagInput.createEl('option', { text: 'すべて', value: 'ALL' });
+		tagInput.createEl('option', { text: 'OK', value: 'OK' });
+		tagInput.createEl('option', { text: 'NG', value: 'NG' });
+
 		const searchBtn = searchContainer.createEl('button', { text: '検索' });
 
 		const progressEl = contentEl.createDiv({ attr: { style: 'margin-bottom: 15px; font-weight: bold;' } });
@@ -227,33 +227,42 @@ class IgoStudyModal extends Modal {
 			progressEl.setText(`練習問題の達成度：${percentage}%`);
 		};
 
-		const renderList = (filterTag: string) => {
+		const renderList = (filterValue: string) => {
 			listContainer.empty();
 			
 			const allPages = Array.from(dv.pages(''));
-			const lowerFilter = filterTag.toLowerCase();
+			const isOkSearch = filterValue === 'OK';
+			const isAllSearch = filterValue === 'ALL';
 
 			const pages = allPages.filter((p: any) => {
-				// tags プロパティによるあいまい検索
+				// igo_problem または tags プロパティをチェック
 				let tags = p.tags || [];
 				if (!Array.isArray(tags)) {
 					tags = [tags];
 				}
-				const hasMatchingTag = tags.some((tag: any) => 
-					typeof tag === 'string' && tag.toLowerCase().includes(lowerFilter)
-				);
 
-				// igo_problem プロパティがある、またはタグがマッチする場合
-				// filterTagが空の場合は全件表示（またはigo_problemのみ）を考慮
-				if (!filterTag) {
-					return p.igo_problem;
+				// initialTag がある場合はタグで絞り込む
+				if (this.initialTag) {
+					const hasTag = tags.some((tag: any) => 
+						typeof tag === 'string' && tag.includes(this.initialTag)
+					);
+					if (!hasTag) return false;
+				} else {
+					// initialTag がない場合は igo_problem または problemTag 設定をチェック
+					const hasIgoProblem = p.igo_problem || tags.includes(this.plugin.settings.problemTag);
+					if (!hasIgoProblem) return false;
 				}
 
-				return p.igo_problem || hasMatchingTag;
+				// チェック状態（completedプロパティ）でフィルタリング
+				if (isAllSearch) return true;
+				const isCompleted = p.completed === true;
+				return isOkSearch ? isCompleted : !isCompleted;
 			});
 
 			if (pages.length === 0) {
-				listContainer.createEl('p', { text: `問題が見つかりませんでした。キーワード "${filterTag}" を含むタグ、または "igo_problem" プロパティを確認してください。` });
+				const tagInfo = this.initialTag ? `タグ "${this.initialTag}"` : `プロパティ "igo_problem" またはタグ "${this.plugin.settings.problemTag}"`;
+				const displayFilterValue = filterValue === 'ALL' ? 'すべて' : filterValue;
+				listContainer.createEl('p', { text: `問題が見つかりませんでした。絞込条件: ${tagInfo} かつ チェック状態 "${displayFilterValue}" に一致する問題を確認してください。` });
 				updateProgress();
 				return;
 			}
@@ -301,18 +310,12 @@ class IgoStudyModal extends Modal {
 			updateProgress();
 		};
 
+		// 初期表示
+		renderList(tagInput.value);
+
 		searchBtn.onClickEvent(() => {
-			renderList(tagInput.value.trim());
+			renderList(tagInput.value);
 		});
-
-		tagInput.addEventListener('keypress', (e) => {
-			if (e.key === 'Enter') {
-				renderList(tagInput.value.trim());
-			}
-		});
-
-		// 初回描画
-		renderList(tagInput.value.trim());
 	}
 
 	async showProblem(page: any) {
