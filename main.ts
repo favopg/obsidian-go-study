@@ -198,12 +198,12 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async executeGoStudy() {
-		const file = this.app.vault.getAbstractFileByPath('Go Study.md');
+		const file = this.app.vault.getAbstractFileByPath('Go Study/Go-Study.md');
 		if (file) {
 			const leaf = this.app.workspace.getLeaf(false);
 			await leaf.openFile(file as any);
 		} else {
-			new Notice('Go Study.md が見つかりません。');
+			new Notice('Go Study/Go-Study.md が見つかりません。');
 			new IgoStudyModal(this.app, this).open();
 		}
 	}
