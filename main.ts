@@ -3,13 +3,9 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 // Remember to rename these classes and interfaces!
 
 interface MyPluginSettings {
-	problemTag: string;
-	defaultAnswer: string;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	problemTag: 'igo-problem',
-	defaultAnswer: 'pd'
 }
 
 export default class MyPlugin extends Plugin {
@@ -302,8 +298,8 @@ class IgoStudyModal extends Modal {
 					);
 					if (!hasTag) return false;
 				} else {
-					// initialTag がない場合は igo_problem または problemTag 設定をチェック
-					const hasIgoProblem = p.igo_problem || tags.includes(this.plugin.settings.problemTag);
+					// initialTag がない場合は igo_problem または problemTag (固定値 igo-problem) をチェック
+					const hasIgoProblem = p.igo_problem || tags.includes('igo-problem');
 					if (!hasIgoProblem) return false;
 				}
 
@@ -321,7 +317,7 @@ class IgoStudyModal extends Modal {
 			});
 
 			if (pages.length === 0) {
-				const tagInfo = this.initialTag ? `タグ "${this.initialTag}"` : `プロパティ "igo_problem" またはタグ "${this.plugin.settings.problemTag}"`;
+				const tagInfo = this.initialTag ? `タグ "${this.initialTag}"` : `プロパティ "igo_problem" またはタグ "igo-problem"`;
 				const displayFilterValue = filterValue === 'ALL' ? 'すべて' : filterValue;
 				listContainer.createEl('p', { text: `問題が見つかりませんでした。絞込条件: ${tagInfo} かつ チェック状態 "${displayFilterValue}" に一致する問題を確認してください。` });
 				updateProgress();
@@ -455,7 +451,7 @@ class IgoStudyModal extends Modal {
 						if (this.initialTag) {
 							return tags.some((tag: any) => typeof tag === 'string' && tag.includes(this.initialTag));
 						} else {
-							return p.igo_problem || tags.includes(this.plugin.settings.problemTag);
+							return p.igo_problem || tags.includes('igo-problem');
 						}
 					});
 					pages.sort((a: any, b: any) => (a.no || Infinity) - (b.no || Infinity));
@@ -505,7 +501,7 @@ class IgoStudyModal extends Modal {
 
 				const processAnswer = async (coords: string, x?: number, y?: number) => {
 					// Frontmatterの正解(カンマ区切り対応)、またはSGF内の着手と一致するか判定
-					const expectedAnswers = String(page.answer || this.plugin.settings.defaultAnswer)
+					const expectedAnswers = String(page.answer || 'pd')
 						.split(',')
 						.map(s => s.toLowerCase().trim());
 					
@@ -650,27 +646,5 @@ class SampleSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		containerEl.createEl('h2', {text: 'Igo Study 設定'});
-
-		new Setting(containerEl)
-			.setName('問題検索用タグ')
-			.setDesc('問題ファイルとして認識するためのタグを指定します。')
-			.addText(text => text
-				.setPlaceholder('igo-problem')
-				.setValue(this.plugin.settings.problemTag)
-				.onChange(async (value) => {
-					this.plugin.settings.problemTag = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('デフォルトの正解')
-			.setDesc('問題ファイルに正解が指定されていない場合のデフォルト回答です。')
-			.addText(text => text
-				.setPlaceholder('pd')
-				.setValue(this.plugin.settings.defaultAnswer)
-				.onChange(async (value) => {
-					this.plugin.settings.defaultAnswer = value;
-					await this.plugin.saveSettings();
-				}));
 	}
 }
