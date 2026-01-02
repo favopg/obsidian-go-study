@@ -532,20 +532,30 @@ class IgoStudyModal extends Modal {
 					}
 
 					// 石を置いた状態のSGFを作成
-					// 手番を判定（SGFの最後の手がBなら次はW、そうでなければB。問題は通常白番か黒番か固定だが、ここでは最後の手の逆とする）
-					const lastMoveMatch = sgfData.match(/;([BW])\[([a-z]{2})\](?=[^;]*\s*\)$)/);
-					const nextColor = (lastMoveMatch && lastMoveMatch[1] === 'B') ? 'W' : 'B';
-					
-					// SGFの最後の閉じ括弧の前に新しい手を追加する（空白や改行を考慮）
-					const updatedSgf = sgfData.replace(/(\)\s*)$/, `;${nextColor}[${coords}]$1`);
-					
-					await refreshBoard(updatedSgf, sgfAnswers.length + 1);
+					// 座標を答える問題でない（coordsが2文字のSGF座標でない）場合は、SGFを更新しない
+					if (coords.length === 2 && /^[a-z]{2}$/.test(coords)) {
+						// 手番を判定（SGFの最後の手がBなら次はW、そうでなければB。問題は通常白番か黒番か固定だが、ここでは最後の手の逆とする）
+						const lastMoveMatch = sgfData.match(/;([BW])\[([a-z]{2})\](?=[^;]*\s*\)$)/);
+						const nextColor = (lastMoveMatch && lastMoveMatch[1] === 'B') ? 'W' : 'B';
+						
+						// SGFの最後の閉じ括弧の前に新しい手を追加する（空白や改行を考慮）
+						const updatedSgf = sgfData.replace(/(\)\s*)$/, `;${nextColor}[${coords}]$1`);
+						
+						await refreshBoard(updatedSgf, sgfAnswers.length + 1);
+					} else {
+						// 座標でない場合は、元のSGFのままリフレッシュ（または何もしない）
+						await refreshBoard(sgfData, sgfAnswers.length);
+					}
+
+					const displayAnswer = (coords.length === 2 && /^[a-z]{2}$/.test(coords)) 
+						? this.sgfToHuman(coords, boardSize) 
+						: coords;
 
 					if (isCorrect) {
-						resultMsgEl.setText('正解です！ (' + this.sgfToHuman(coords, boardSize) + ')');
+						resultMsgEl.setText('正解です！ (' + displayAnswer + ')');
 						resultMsgEl.style.color = 'green';
 					} else {
-						resultMsgEl.setText('不正解です。 (' + this.sgfToHuman(coords, boardSize) + ')' + (resultValue ? '\nポイント: ' + resultValue : ''));
+						resultMsgEl.setText('不正解です。 (' + displayAnswer + ')' + (resultValue ? '\nポイント: ' + resultValue : ''));
 						resultMsgEl.style.color = 'red';
 					}
 				};
