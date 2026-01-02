@@ -330,7 +330,7 @@ class IgoStudyModal extends Modal {
 
 			const listEl = listContainer.createEl('ul', { attr: { style: 'list-style: none; padding-left: 0;' } });
 			pages.forEach((page: any, index: number) => {
-				const itemEl = listEl.createEl('li', { attr: { style: 'display: flex; align-items: flex-end; gap: 15px; padding: 10px; border-bottom: 1px solid var(--background-modifier-border-focus); cursor: pointer; transition: background-color 0.2s;' } });
+				const itemEl = listEl.createEl('li', { attr: { style: 'display: flex; align-items: flex-end; gap: 15px; padding: 10px; border-bottom: 1px solid var(--background-modifier-border-focus); transition: background-color 0.2s;' } });
 				
 				// ホバー効果
 				itemEl.addEventListener('mouseenter', () => {
@@ -340,13 +340,6 @@ class IgoStudyModal extends Modal {
 					itemEl.style.backgroundColor = 'transparent';
 				});
 
-				// 行全体のクリックイベント
-				itemEl.addEventListener('click', (evt) => {
-					// チェックボックス自体をクリックした場合は showProblem を実行しない
-					if ((evt.target as HTMLElement).tagName.toLowerCase() === 'input') return;
-					this.showProblem(page);
-				});
-				
 				// チェックボックス用の縦並びコンテナ
 				const cbContainer = itemEl.createDiv({ attr: { style: 'display: flex; flex-direction: column; align-items: center; width: 50px;' } });
 				if (index === 0) {
@@ -378,12 +371,11 @@ class IgoStudyModal extends Modal {
 					linkContainer.createSpan({ text: '問題一覧', attr: { style: 'font-size: 0.8em; color: var(--text-muted); margin-bottom: 4px;' } });
 				}
 				const noPrefix = page.no !== undefined ? `${page.no}. ` : '';
-				const linkEl = linkContainer.createEl('a', { text: `${noPrefix}${page.file.name}`, cls: 'internal-link', attr: { style: 'font-size: 1.1em; padding: 2px 0; color: var(--link-color); text-decoration: none;' } });
-				// linkEl 自体のクリックイベントは itemEl のクリックイベントに統合されたため、
-				// aタグのデフォルトの挙動（hrefがない場合は特に何もしないが）を抑制し、
-				// 視覚的にリンクであることを示す
+				const linkEl = linkContainer.createEl('a', { text: `${noPrefix}${page.file.name}`, cls: 'internal-link', attr: { style: 'font-size: 1.1em; padding: 2px 0; color: var(--link-color); text-decoration: none; cursor: pointer;' } });
+				
 				linkEl.addEventListener('click', (evt) => {
 					evt.preventDefault();
+					this.showProblem(page);
 				});
 			});
 
